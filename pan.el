@@ -119,7 +119,7 @@ test or current class."
 ;;;###autoload
 (defun pan-current-class (&optional askenvs)
   (interactive "P")
-  (with-tox current (or (not pan-default-env) askenvs)
+  (with-pan current (or (not pan-default-env) askenvs)
      (if current
          (let ((current-class (car (split-string current "\\."))))
            (compile (pan-get-command current-class toxenvs t)))

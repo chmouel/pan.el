@@ -40,6 +40,25 @@
 
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun pan-get-all-tests (toxenv)
+  "Get all tests from testr using discover -l"
+  (let ((current-directory (pan-get-root-directory))
+        (toxdir (concat (pan-get-root-directory) ".tox")))
+    (with-temp-buffer
+      (call-process
+       (concat toxdir "/" toxenv "/bin/python")
+       nil t nil "-m" "testtools.run"
+       "discover" "-l")
+    (let ((lines '()))      
+      (goto-char (point-min))
+        (while (not (eobp))
+          (push (car (split-string
+                      (buffer-substring
+                       (point) (point-at-eol))))
+                lines)
+          (beginning-of-line 2))
+        lines))))
+
 (defun pan-get-envlist()
   "Get tox dirs from the python directories. Only get the one that has testools
 installed."
@@ -72,11 +91,11 @@ test or current class."
        (setq pan-default-env toxenvs)
        ,@body))
 
-(defun pan-get-command (test env)
+(defun pan-get-command (test env gettest)
   "Return the command to launch tests."
   (concat
    "./.tox/" env "/bin/python -m testtools.run "
-   (when (not (string-match-p "^discover" test))
+   (when gettest
      (concat 
      (subst-char-in-string
       ?/ ?.       
@@ -95,7 +114,7 @@ test or current class."
   (with-pan current (or (not pan-default-env) askenvs)
      (unless current
        (error "No function at point"))
-     (compile (pan-get-command current toxenvs))))
+     (compile (pan-get-command current toxenvs t))))
 
 ;;;###autoload
 (defun pan-current-class (&optional askenvs)
@@ -103,21 +122,33 @@ test or current class."
   (with-tox current (or (not pan-default-env) askenvs)
      (if current
          (let ((current-class (car (split-string current "\\."))))
-           (compile (pan-get-command current-class toxenvs)))
+           (compile (pan-get-command current-class toxenvs t)))
        (error "No class at point"))))
 
 ;;;###autoload
 (defun pan-run-all (&optional askenvs)
   (interactive "P")
   (with-pan current (or (not pan-default-env) askenvs)
-     (compile (pan-get-command "discover" toxenvs))))
+     (compile (pan-get-command "discover" toxenvs nil))))
 
 ;;;###autoload
 (defun pan-run-all-until-fail (&optional askenvs)
   (interactive "P")
   (with-pan current (or (not pan-default-env) askenvs)
-     (compile (pan-get-command "discover -f" toxenvs))))
+     (compile (pan-get-command "discover -f" toxenvs nil))))
 
+;;;###autoload
+(defun pan-choose-test-to-run (&optional askenvs)
+  (interactive "P")
+  (with-pan
+   current (or (not pan-default-env) askenvs)
+   (let ((tests (pan-get-all-tests toxenvs)))
+     (compile (pan-get-command
+               (funcall (or (and (featurep 'ido)
+                                 (symbol-function 'ido-completing-read))
+                            #'completing-read)
+                        "Test: " tests)
+               toxenvs nil)))))
 
 ;;; End pan.el ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

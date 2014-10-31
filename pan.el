@@ -36,7 +36,7 @@
 
 ;;; Default setting lists ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar pan-default-env nil)
+(defvar pan-default-env 'nil)
 
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -44,8 +44,7 @@
   "Get tox dirs from the python directories. Only get the one that has testools
 installed."
   (let ((envs '())
-        (toxdir (concat (locate-dominating-file
-                 (buffer-file-name) ".tox") ".tox")))
+        (toxdir (concat (pan-get-root-directory) ".tox")))
     (dolist (dir (directory-files toxdir nil nil t))
       (when (file-exists-p (concat toxdir "/" dir "/bin/python"))
         (if (= 0 (call-process (concat toxdir "/" dir "/bin/python")

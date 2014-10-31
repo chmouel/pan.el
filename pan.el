@@ -39,29 +39,15 @@
 
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun pan-read-tox-ini-envlist()
-  "Read the tox.ini file and grab the environment list."
-  (let ((tox-ini-file
-         (concat (locate-dominating-file
-                  (buffer-file-name) "tox.ini") "tox.ini"))
-        (envlist))
-    (with-temp-buffer
-      (buffer-disable-undo)
-      (cond ((get-file-buffer tox-ini-file)
-             (insert (with-current-buffer (get-file-buffer tox-ini-file)
-                       (buffer-substring (point-min) (point-max)))))
-            ((not (file-exists-p tox-ini-file)))
-            (t (insert-file-contents tox-ini-file)))
-      (goto-char (point-max))
-      (or (eq (preceding-char) ?\n) (newline))
-      (goto-char (point-min))
-      (while (re-search-forward "^envlist\s*=\s*\\([^\t\n ]+\\)" nil t)
-        (setq envlist
-              (split-string
-               (buffer-substring-no-properties
-                (match-beginning 1)
-                (match-end 1)) ","))))
-    envlist))
+(defun pan-get-envlist()
+  "Get tox dirs from the python directories."
+  (let ((envs '())
+        (toxdir (concat (locate-dominating-file
+                 (buffer-file-name) ".tox") ".tox")))
+    (dolist (dir (directory-files toxdir nil nil t))
+      (if (file-exists-p (concat toxdir "/" dir "/bin/python"))
+          (push dir envs)))
+    envs))
 
 (defun pan-get-root-directory()
   "Return the root directory to run tests."
@@ -73,7 +59,7 @@
   "Macro which initialize environments variables to launch unit tests on current test or current class."
     `(let ((toxenvs (if ,askenvs
 			(completing-read
-			 "Tox Environment: " (pan-read-tox-ini-envlist))
+			 "Tox Environment: " (pan-get-envlist))
 		      pan-default-env))
 	   (default-directory (pan-get-root-directory))
 	   (compilation-auto-jump-to-first-error nil)

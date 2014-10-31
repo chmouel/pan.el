@@ -11,8 +11,9 @@
 
 ;;; Commentary:
 ;;;
-;;; Mostly tailored to openstack worlflow, using the venv built already.
-;;;
+;;; If you use tox and testr it will just work and run the current test with the
+;;; environments that are already built without using tox directly but python -m
+;;; testools.run.
 ;;;
 ;;; License:
 
@@ -40,13 +41,16 @@
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun pan-get-envlist()
-  "Get tox dirs from the python directories."
+  "Get tox dirs from the python directories. Only get the one that has testools
+installed."
   (let ((envs '())
         (toxdir (concat (locate-dominating-file
                  (buffer-file-name) ".tox") ".tox")))
     (dolist (dir (directory-files toxdir nil nil t))
-      (if (file-exists-p (concat toxdir "/" dir "/bin/python"))
-          (push dir envs)))
+      (when (file-exists-p (concat toxdir "/" dir "/bin/python"))
+        (if (= 0 (call-process (concat toxdir "/" dir "/bin/python")
+                               nil nil nil "-m" "testtools.run"))
+            (push dir envs))))
     envs))
 
 (defun pan-get-root-directory()
@@ -56,7 +60,8 @@
                      "./")))
 
 (defmacro with-pan (current &optional askenvs &rest body)
-  "Macro which initialize environments variables to launch unit tests on current test or current class."
+  "Macro which initialize environments variables to launch unit tests on current
+test or current class."
     `(let ((toxenvs (if ,askenvs
 			(completing-read
 			 "Tox Environment: " (pan-get-envlist))

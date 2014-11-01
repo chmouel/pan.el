@@ -150,6 +150,14 @@ test or current class."
                         "Test: " tests)
                toxenvs nil)))))
 
+(when (require 'virtualenvwrapper nil t)
+  (defun pan-venv-workon()
+    "Use virtualenvwrapper library to setup the virtualenv environements for our
+    project tox venvs.."
+    (interactive)
+    (let ((venv-location (concat (pan-get-root-directory) "/.tox")))
+      (venv-workon))))
+
 ;;; End pan.el ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'pan)

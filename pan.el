@@ -64,7 +64,7 @@
   (let ((tests (pan-get-all-tests toxenvs)))
     (funcall (or (and (featurep 'ido)
                       (symbol-function 'ido-completing-read))
-                 #'completing-read) "Test: " tests))))
+                 #'completing-read) "Test: " tests)))
 
 (defun pan-get-envlist()
   "Get tox dirs from the python directories. Only get the one that has testools
@@ -123,17 +123,13 @@ test or current class."
        (error "No function at point"))
      (compile (pan-get-command current toxenvs t))))
 
-;;;###autoload
-(defun pan-jump-to-test (&optional askenvs)
-  "Jump to a testr test from a function and record it"
-  (interactive)
-  (with-pan current (or (not pan-default-env) askenvs)
-   (let ((assoc)
-         (current (python-info-current-defun)))
-    (if (not (gethash current pan-test-associations))
+(defun pan-jump-to-test (current askenv)
+  (let ((asoc))
+    (if (or askenv (not (gethash current pan-test-associations)))
         (puthash current (pan-ask-for-test toxenvs) pan-test-associations))
     (setq assoc (gethash current pan-test-associations))
-    (let ((class_test (last (split-string assoc "\\.") 2))
+    (let ((class_test
+           (last (split-string assoc "\\.") 2))
           (filename
            (concat
             (mapconcat
@@ -147,7 +143,20 @@ test or current class."
                               (car class_test)))
           (re-search-forward (concat
                               "^[[:blank:]]*def[[:blank:]]*"
-                              (car (cdr class_test)))))))))
+                              (car (cdr class_test)))))
+      (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
+
+;;;###autoload
+(defun pan-switch-test-func (&optional askenvs)
+  "Jump to a testr test from a function and record it"
+  (interactive "P")
+  (with-pan current (or (not pan-default-env) askenvs)
+   (let ((assoc)
+         (current (concat
+           (replace-regexp-in-string
+            (pan-get-root-directory) "" (buffer-file-name))
+           ":" (python-info-current-defun))))
+     (pan-jump-to-test current askenvs))))
 
 ;;;###autoload
 (defun pan-current-class (&optional askenvs)

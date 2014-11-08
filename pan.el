@@ -15,6 +15,17 @@
 ;;; environments that are already built without using tox directly but python -m
 ;;; testools.run.
 ;;;
+;;; pan-run-current-test will run the function at point.
+;;; pan-run-all-until-fail will run all tests until the first one that has
+;;; failed.
+;;; pan-venv-workon will use the virtualenvwrapper library to setup a virtualenv
+;;; whitin your discovered tox directory.
+;;;
+;;; When you are in a function of your code you can use the function
+;;; `pan-switch-test-func to jump to one of the tests as discovered by
+;;; testr. Pan will record from which function you are coming from and switch
+;;; back to it if you run it again.
+;;;
 ;;; License:
 
 ;; This file is NOT part of GNU Emacs.
@@ -40,6 +51,44 @@
 (defvar pan-test-associations (make-hash-table :test 'equal))
 
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun pan-jump-move-around (filename class_test)
+  (if (not (file-exists-p filename))
+      (error "cannot find filename: %s" filename))
+  (find-file filename)
+  (beginning-of-buffer)
+  (if (re-search-forward (concat
+                          "^class[[:blank:]]*"
+                          (car class_test)))
+      (re-search-forward (concat
+                          "^[[:blank:]]*def[[:blank:]]*"
+                          (car (cdr class_test)))))
+  (message "Switched to: %s" (mapconcat 'identity class_test ".")))
+
+(defun pan-jump-to-test-from-function (current askenv)
+  (let ((asoc))
+    (if (or askenv (not (gethash current pan-test-associations)))
+        (puthash current (pan-ask-for-test toxenvs) pan-test-associations))
+    (setq assoc (gethash current pan-test-associations))
+    (let ((class_test
+           (last (split-string assoc "\\.") 2))
+          (filename
+           (concat
+            (mapconcat
+             'identity (butlast (split-string assoc "\\.") 2) "/") ".py")))
+      (pan-jump-move-around  filename class_test))))
+
+(defun pan-jump-to-function-from-test (current askenv)
+  (let ((matched)
+        (currentbase (car (cdr (split-string current ":")))))
+    (maphash
+     (lambda (k v)
+       (if (string= currentbase (mapconcat 'identity (last (split-string v "\\.") 2) "."))
+           (setq matched k)))
+     pan-test-associations)
+    (let ((filename (car (split-string matched ":")))
+          (class_test (split-string (car (cdr (split-string matched ":"))) "\\.")))
+      (pan-jump-move-around filename class_test))))
 
 (defun pan-get-all-tests (toxenv)
   "Get all tests from testr using discover -l"
@@ -122,49 +171,6 @@ test or current class."
      (unless current
        (error "No function at point"))
      (compile (pan-get-command current toxenvs t))))
-
-(defun pan-jump-to-test-from-function (current askenv)
-  (let ((asoc))
-    (if (or askenv (not (gethash current pan-test-associations)))
-        (puthash current (pan-ask-for-test toxenvs) pan-test-associations))
-    (setq assoc (gethash current pan-test-associations))
-    (let ((class_test
-           (last (split-string assoc "\\.") 2))
-          (filename
-           (concat
-            (mapconcat
-             'identity (butlast (split-string assoc "\\.") 2) "/") ".py")))
-      (if (not (file-exists-p filename))
-          (error "cannot find test filename: %s" filename))
-      (find-file filename)
-      (beginning-of-buffer)
-      (if (re-search-forward (concat
-                              "^class[[:blank:]]*"
-                              (car class_test)))
-          (re-search-forward (concat
-                              "^[[:blank:]]*def[[:blank:]]*"
-                              (car (cdr class_test)))))
-      (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
-
-(defun pan-jump-to-function-from-test (current askenv)
-  (let ((matched)
-        (currentbase (car (cdr (split-string current ":")))))
-    (maphash
-     (lambda (k v)
-       (if (string= currentbase (mapconcat 'identity (last (split-string v "\\.") 2) "."))
-           (setq matched k)))
-     pan-test-associations)
-    (let ((filename (car (split-string matched ":")))
-          (class_test (split-string (car (cdr (split-string matched ":"))) "\\.")))
-      (find-file filename)
-      (beginning-of-buffer)
-      (if (re-search-forward (concat
-                              "^class[[:blank:]]*"
-                              (car class_test)))
-          (re-search-forward (concat
-                              "^[[:blank:]]*def[[:blank:]]*"
-                              (car (cdr class_test)))))
-      (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
 
 ;;;###autoload
 (defun pan-switch-test-func (&optional askenvs)

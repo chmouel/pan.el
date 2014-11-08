@@ -183,9 +183,9 @@ test or current class."
            (replace-regexp-in-string
             (pan-get-root-directory) "" (buffer-file-name))
            ":" current)))
-     (if (string= "test_"
-                  (substring (car (cdr (split-string current "\\."))) 0 5))
-         (pan-jump-to-function-from-test full-current askenvs)
+     (if (and (string-match (rx-to-string `(: bos ,"test_") t)
+                            (car (cdr (split-string current "\\.")))) t)
+         (pan-jump-to-function-from-test full-current askenvs))
        (pan-jump-to-test-from-function full-current askenvs)))))
 
 ;;;###autoload

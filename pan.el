@@ -123,7 +123,7 @@ test or current class."
        (error "No function at point"))
      (compile (pan-get-command current toxenvs t))))
 
-(defun pan-jump-to-test (current askenv)
+(defun pan-jump-to-test-from-function (current askenv)
   (let ((asoc))
     (if (or askenv (not (gethash current pan-test-associations)))
         (puthash current (pan-ask-for-test toxenvs) pan-test-associations))
@@ -146,17 +146,25 @@ test or current class."
                               (car (cdr class_test)))))
       (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
 
+(defun pan-jump-to-function-from-test (current askenv)
+  )
+
+
 ;;;###autoload
 (defun pan-switch-test-func (&optional askenvs)
   "Jump to a testr test from a function and record it"
   (interactive "P")
   (with-pan current (or (not pan-default-env) askenvs)
-   (let ((assoc)
-         (current (concat
+   (let* ((assoc)
+         (current (python-info-current-defun))
+         (full-current (concat
            (replace-regexp-in-string
             (pan-get-root-directory) "" (buffer-file-name))
-           ":" (python-info-current-defun))))
-     (pan-jump-to-test current askenvs))))
+           ":" current)))
+     (if (string= "test_"
+                  (substring (car (cdr (split-string current "\\."))) 0 5))
+         (pan-jump-to-function-from-test full-current askenvs)
+       (pan-jump-to-test-from-function full-current askenvs)))))
 
 ;;;###autoload
 (defun pan-current-class (&optional askenvs)

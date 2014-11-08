@@ -185,7 +185,7 @@ test or current class."
            ":" current)))
      (if (and (string-match (rx-to-string `(: bos ,"test_") t)
                             (car (cdr (split-string current "\\.")))) t)
-         (pan-jump-to-function-from-test full-current askenvs))
+         (pan-jump-to-function-from-test full-current askenvs)
        (pan-jump-to-test-from-function full-current askenvs)))))
 
 ;;;###autoload

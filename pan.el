@@ -37,6 +37,7 @@
 ;;; Default setting lists ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar pan-default-env 'nil)
+(defvar pan-test-associations (make-hash-table :test 'equal))
 
 ;;; Commands ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -49,7 +50,7 @@
        (concat toxdir "/" toxenv "/bin/python")
        nil t nil "-m" "testtools.run"
        "discover" "-l")
-    (let ((lines '()))      
+    (let ((lines '()))
       (goto-char (point-min))
         (while (not (eobp))
           (push (car (split-string
@@ -58,6 +59,12 @@
                 lines)
           (beginning-of-line 2))
         lines))))
+
+(defun pan-ask-for-test (toxenvs)
+  (let ((tests (pan-get-all-tests toxenvs)))
+    (funcall (or (and (featurep 'ido)
+                      (symbol-function 'ido-completing-read))
+                 #'completing-read) "Test: " tests))))
 
 (defun pan-get-envlist()
   "Get tox dirs from the python directories. Only get the one that has testools
@@ -81,13 +88,13 @@ installed."
   "Macro which initialize environments variables to launch unit tests on current
 test or current class."
     `(let ((toxenvs (if ,askenvs
-			(completing-read
-			 "Tox Environment: " (pan-get-envlist))
-		      pan-default-env))
-	   (default-directory (pan-get-root-directory))
-	   (compilation-auto-jump-to-first-error nil)
-	   (compilation-scroll-output nil)
-	   (,current (python-info-current-defun)))
+            (completing-read
+             "Tox Environment: " (pan-get-envlist))
+              pan-default-env))
+       (default-directory (pan-get-root-directory))
+       (compilation-auto-jump-to-first-error nil)
+       (compilation-scroll-output nil)
+       (,current (python-info-current-defun)))
        (setq pan-default-env toxenvs)
        ,@body))
 
@@ -96,9 +103,9 @@ test or current class."
   (concat
    "./.tox/" env "/bin/python -m testtools.run "
    (when gettest
-     (concat 
+     (concat
      (subst-char-in-string
-      ?/ ?.       
+      ?/ ?.
       (file-name-sans-extension
        (substring
         (file-truename
@@ -115,6 +122,32 @@ test or current class."
      (unless current
        (error "No function at point"))
      (compile (pan-get-command current toxenvs t))))
+
+;;;###autoload
+(defun pan-jump-to-test (&optional askenvs)
+  "Jump to a testr test from a function and record it"
+  (interactive)
+  (with-pan current (or (not pan-default-env) askenvs)
+   (let ((assoc)
+         (current (python-info-current-defun)))
+    (if (not (gethash current pan-test-associations))
+        (puthash current (pan-ask-for-test toxenvs) pan-test-associations))
+    (setq assoc (gethash current pan-test-associations))
+    (let ((class_test (last (split-string assoc "\\.") 2))
+          (filename
+           (concat
+            (mapconcat
+             'identity (butlast (split-string assoc "\\.") 2) "/") ".py")))
+      (if (not (file-exists-p filename))
+          (error "cannot find test filename: %s" filename))
+      (find-file filename)
+      (beginning-of-buffer)
+      (if (re-search-forward (concat
+                              "^class[[:blank:]]*"
+                              (car class_test)))
+          (re-search-forward (concat
+                              "^[[:blank:]]*def[[:blank:]]*"
+                              (car (cdr class_test)))))))))
 
 ;;;###autoload
 (defun pan-current-class (&optional askenvs)
@@ -140,14 +173,10 @@ test or current class."
 ;;;###autoload
 (defun pan-choose-test-to-run (&optional askenvs)
   (interactive "P")
-  (with-pan
-   current (or (not pan-default-env) askenvs)
+  (with-pan current (or (not pan-default-env) askenvs)
    (let ((tests (pan-get-all-tests toxenvs)))
      (compile (pan-get-command
-               (funcall (or (and (featurep 'ido)
-                                 (symbol-function 'ido-completing-read))
-                            #'completing-read)
-                        "Test: " tests)
+               (pan-ask-for-test toxenvs)
                toxenvs nil)))))
 
 (when (require 'virtualenvwrapper nil t)

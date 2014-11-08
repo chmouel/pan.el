@@ -147,8 +147,24 @@ test or current class."
       (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
 
 (defun pan-jump-to-function-from-test (current askenv)
-  )
-
+  (let ((matched)
+        (currentbase (car (cdr (split-string current ":")))))
+    (maphash
+     (lambda (k v)
+       (if (string= currentbase (mapconcat 'identity (last (split-string v "\\.") 2) "."))
+           (setq matched k)))
+     pan-test-associations)
+    (let ((filename (car (split-string matched ":")))
+          (class_test (split-string (car (cdr (split-string matched ":"))) "\\.")))
+      (find-file filename)
+      (beginning-of-buffer)
+      (if (re-search-forward (concat
+                              "^class[[:blank:]]*"
+                              (car class_test)))
+          (re-search-forward (concat
+                              "^[[:blank:]]*def[[:blank:]]*"
+                              (car (cdr class_test)))))
+      (message "Switched to: %s" (mapconcat 'identity class_test ".")))))
 
 ;;;###autoload
 (defun pan-switch-test-func (&optional askenvs)

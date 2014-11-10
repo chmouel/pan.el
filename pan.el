@@ -15,16 +15,22 @@
 ;;; environments that are already built without using tox directly but python -m
 ;;; testools.run.
 ;;;
-;;; pan-run-current-test will run the function at point.
-;;; pan-run-all-until-fail will run all tests until the first one that has
+;;; `pan-run-current-test' will run the function at point.
+;;; `pan-run-all-until-fail' will run all tests until the first one that has
 ;;; failed.
-;;; pan-venv-workon will use the virtualenvwrapper library to setup a virtualenv
+;;; `pan-venv-workon' will use the virtualenvwrapper library to setup a virtualenv
 ;;; whitin your discovered tox directory.
 ;;;
 ;;; When you are in a function of your code you can use the function
-;;; `pan-switch-test-func to jump to one of the tests as discovered by
+;;; `pan-switch-test-func' to jump to one of the tests as discovered by
 ;;; testr. Pan will record from which function you are coming from and switch
 ;;; back to it if you run it again.
+;;;
+;;; TODO:
+;;;
+;;; - Caching of places between Emacs session (is it really needed?)
+;;; - Caching of testr listing
+;;; - Implement other testr command line (i.e: failing, isolated or others)
 ;;;
 ;;; License:
 

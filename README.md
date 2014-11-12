@@ -24,7 +24,7 @@ You can choose a different function to run the tests :
 
 ## Switch between test and function
 
-This idea come from an `intelij` feature. If you are in your code and have a function there you can run the function to `pan-switch-test-func` and it will ask you for a test (taken directly from testr) and jump to it directly. If you call `pan-switch-test-func` again from the function test it will jump back to the function and same again since it will be recorded. Just specify `C-u` again if you need to specify an another test.
+This idea come from an [intelij](https://www.jetbrains.com/idea/help/navigating-between-test-and-test-subject.html) feature. If you are in your code and have a function there you can run the function to `pan-switch-test-func` and it will ask you for a test (taken directly from testr) and jump to it directly. If you call `pan-switch-test-func` again from the function test it will jump back to the function and same again since it will be recorded. Just specify `C-u` again if you need to specify an another test.
 
 ![A GiF image demonstrating the feature](http://i.imgur.com/pzP7dHr.gif)
 
